@@ -313,6 +313,23 @@ public class ZoneDatabaseManager {
                 : getReadNamedParameterJdbcTemplate(districtId);
     }
 
+    public NamedParameterJdbcTemplate getNamedParameterJdbcTemplateByConnectionName(String connectionName) {
+        if (connectionName == null || connectionName.isBlank()) {
+            return getReadNamedParameterJdbcTemplate();
+        }
+        String clean = connectionName.trim().toLowerCase();
+        if (clean.contains("auth") || clean.contains("psql_con")) {
+            return clean.contains("write") ? authWriteNamedJdbcTemplate : authReadNamedJdbcTemplate;
+        }
+        if (clean.startsWith("zone2")) {
+            return clean.contains("write") ? zone2WriteNamedJdbcTemplate : zone2ReadNamedJdbcTemplate;
+        }
+        if (clean.startsWith("zone1")) {
+            return clean.contains("write") ? zone1WriteNamedJdbcTemplate : zone1ReadNamedJdbcTemplate;
+        }
+        return getReadNamedParameterJdbcTemplate();
+    }
+
     // ── JdbcTemplate Accessors ───────────────────────────────────────────
     public JdbcTemplate getReadJdbcTemplate(Integer districtId) {
         String zone = resolveZone(districtId);

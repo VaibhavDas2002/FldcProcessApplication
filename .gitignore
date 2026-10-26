@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+#taskkill /f /pid 21296
+#netstat -ano | findstr 8081

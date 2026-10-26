@@ -167,4 +167,8 @@ public class ZoneDB {
     public static JdbcTemplate getJdbcTemplate(String mode, Integer districtId) {
         return getManager().getJdbcTemplate(mode, districtId);
     }
+
+    public static NamedParameterJdbcTemplate getNamedParameterJdbcTemplateByConnectionName(String connectionName) {
+        return getManager().getNamedParameterJdbcTemplateByConnectionName(connectionName);
+    }
 }
