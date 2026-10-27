@@ -30,6 +30,17 @@ public class familymemberRepository {
         return jdbcTemplate.queryForList(sql, params);
     }
 
+    public List<Map<String, Object>> findByFamilyId(int districtCode, String family_id) {
+        NamedParameterJdbcTemplate jdbcTemplate = zoneDatabaseManager.getReadNamedParameterJdbcTemplate(districtCode);
+
+        String sql = "SELECT id, next_level_role_id, approval_datetime, verification_datetime FROM dbt_apy.family_members WHERE lgd_district_code = :dis and family_id = CAST(:family_id AS uuid)";
+        Map<String, Object> params = new HashMap<>();
+        params.put("dis", districtCode);
+        params.put("family_id", family_id);
+
+        return jdbcTemplate.queryForList(sql, params);
+    }
+
     public List<Map<String, Object>> findCurrentStatusByDistrictCode(int districtCode, String family_id,
             String member_id) {
         return findByDistrictCode(districtCode, family_id, member_id);

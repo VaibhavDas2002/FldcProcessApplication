@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import resDTO.GetFamilyInput;
+import config.RoleId;
+import reqDTO.FamilyRequest;
 import service.StatusFLDC;
 import service.ZoneDatabaseManager;
 import util.GlobalUpdateCheckHelper;
@@ -65,11 +67,35 @@ public class ProcessApplication {
     }
 
     @PostMapping("/status")
-    public ResponseEntity<List<Map<String, Object>>> getStatus(
+    public ResponseEntity<?> getStatus(
             @RequestParam("districtCode") int districtCode,
             @RequestParam("family_id") String familyId,
             @RequestParam("member_id") String memberId) {
-        return ResponseEntity.ok(statusFLDC.getStatusByDistrict(districtCode, familyId, memberId));
+
+        List<Map<String, Object>> data = statusFLDC.getStatusByDistrict(districtCode, familyId, memberId);
+
+        if (data == null || data.isEmpty()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(responseHandler.ResponseHandler.error("Family member details not found"));
+        }
+
+        Object roleObj = data.get(0).get("next_level_role_id");
+        Integer next_level_role_id = null;
+        if (roleObj instanceof Number number) {
+            next_level_role_id = number.intValue();
+        } else if (roleObj != null) {
+            try {
+                next_level_role_id = Integer.valueOf(roleObj.toString());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        String roleStatusName = RoleId.getRoleStatusName(next_level_role_id);
+        if (roleStatusName == null) {
+            roleStatusName = "Status unknown (Role ID: " + next_level_role_id + ")";
+        }
+
+        return ResponseEntity.ok(success(roleStatusName, data));
     }
 
     @PostMapping("/acceptFamily")
@@ -88,7 +114,8 @@ public class ProcessApplication {
 
         String remarks = data.getRemarks();
         if (remarks != null && remarks.length() > 1000) {
-            return ResponseEntity.badRequest().body(error("Remarks cannot exceed 1000 characters", HttpStatus.BAD_REQUEST));
+            return ResponseEntity.badRequest()
+                    .body(error("Remarks cannot exceed 1000 characters", HttpStatus.BAD_REQUEST));
         }
 
         ZoneDatabaseManager dbManager = getZoneDatabaseManager();
@@ -99,7 +126,8 @@ public class ProcessApplication {
             distCode = dbManager.getDistrictId();
         }
         if (distCode == null || distCode <= 0) {
-            return ResponseEntity.badRequest().body(error("Invalid or missing lgd_district_code", HttpStatus.BAD_REQUEST));
+            return ResponseEntity.badRequest()
+                    .body(error("Invalid or missing lgd_district_code", HttpStatus.BAD_REQUEST));
         }
 
         try {
@@ -129,16 +157,16 @@ public class ProcessApplication {
 
             // Check existing state validity
             boolean isStateValid = GlobalUpdateCheckHelper.checkingExistingStateFamily(
-                null,
-                familyId,
-                null,
-                List.of(13, 15),
-                distCode,
-                localBodyCode
-            );
+                    null,
+                    familyId,
+                    null,
+                    List.of(13, 15),
+                    distCode,
+                    localBodyCode);
 
             if (!isStateValid) {
-                return ResponseEntity.badRequest().body(error("Application is not available for verification", HttpStatus.BAD_REQUEST));
+                return ResponseEntity.badRequest()
+                        .body(error("Application is not available for verification", HttpStatus.BAD_REQUEST));
             }
 
             // Begin DB transaction on connWrite
@@ -146,18 +174,19 @@ public class ProcessApplication {
             try (Connection conn = writeDataSource.getConnection()) {
                 conn.setAutoCommit(false);
                 try {
-                    NamedParameterJdbcTemplate writeJdbcTemplate = new NamedParameterJdbcTemplate(new SingleConnectionDataSource(conn, true));
+                    NamedParameterJdbcTemplate writeJdbcTemplate = new NamedParameterJdbcTemplate(
+                            new SingleConnectionDataSource(conn, true));
 
                     // Update dbt_apy.families
                     StringBuilder familyQuery = new StringBuilder("""
-                        UPDATE dbt_apy.families
-                        SET application_status = 'ACCEPTED',
-                            next_level_role_id = 18
-                        WHERE lgd_district_code = :distCode
-                          AND created_by_dist_code = :distCode
-                          AND id = CAST(:family_id AS uuid)
-                          AND is_deleted = false
-                    """);
+                                UPDATE dbt_apy.families
+                                SET application_status = 'ACCEPTED',
+                                    next_level_role_id = 18
+                                WHERE lgd_district_code = :distCode
+                                  AND created_by_dist_code = :distCode
+                                  AND id = CAST(:family_id AS uuid)
+                                  AND is_deleted = false
+                            """);
 
                     MapSqlParameterSource familyParams = new MapSqlParameterSource();
                     familyParams.addValue("distCode", distCode);
@@ -165,7 +194,8 @@ public class ProcessApplication {
 
                     if (localBodyCode != null) {
                         familyQuery.append(" AND created_by_local_body_code = :localBodyCode");
-                        familyParams.addValue("localBodyCode", GlobalUpdateCheckHelper.normalizeLocalBodyCode(localBodyCode));
+                        familyParams.addValue("localBodyCode",
+                                GlobalUpdateCheckHelper.normalizeLocalBodyCode(localBodyCode));
                     }
 
                     int familyUpdated = writeJdbcTemplate.update(familyQuery.toString(), familyParams);
@@ -173,15 +203,15 @@ public class ProcessApplication {
 
                     // Update dbt_apy.family_members
                     StringBuilder memberQuery = new StringBuilder("""
-                        UPDATE dbt_apy.family_members
-                        SET application_status = 'ACCEPTED',
-                            next_level_role_id = 18
-                        WHERE lgd_district_code = :distCode
-                          AND created_by_dist_code = :distCode
-                          AND family_id = CAST(:family_id AS uuid)
-                          AND next_level_role_id <> 30
-                          AND is_deleted = false
-                    """);
+                                UPDATE dbt_apy.family_members
+                                SET application_status = 'ACCEPTED',
+                                    next_level_role_id = 18
+                                WHERE lgd_district_code = :distCode
+                                  AND created_by_dist_code = :distCode
+                                  AND family_id = CAST(:family_id AS uuid)
+                                  AND next_level_role_id <> 30
+                                  AND is_deleted = false
+                            """);
 
                     MapSqlParameterSource memberParams = new MapSqlParameterSource();
                     memberParams.addValue("distCode", distCode);
@@ -189,27 +219,29 @@ public class ProcessApplication {
 
                     if (localBodyCode != null) {
                         memberQuery.append(" AND created_by_local_body_code = :localBodyCode");
-                        memberParams.addValue("localBodyCode", GlobalUpdateCheckHelper.normalizeLocalBodyCode(localBodyCode));
+                        memberParams.addValue("localBodyCode",
+                                GlobalUpdateCheckHelper.normalizeLocalBodyCode(localBodyCode));
                     }
 
                     writeJdbcTemplate.update(memberQuery.toString(), memberParams);
 
                     // Select affected members for logging
                     StringBuilder affectedMembersQuery = new StringBuilder("""
-                        SELECT id, family_serial, lgd_district_code
-                        FROM dbt_apy.family_members
-                        WHERE lgd_district_code = :distCode
-                          AND created_by_dist_code = :distCode
-                          AND family_id = CAST(:family_id AS uuid)
-                          AND next_level_role_id <> 30
-                          AND is_deleted = false
-                    """);
+                                SELECT id, family_serial, lgd_district_code
+                                FROM dbt_apy.family_members
+                                WHERE lgd_district_code = :distCode
+                                  AND created_by_dist_code = :distCode
+                                  AND family_id = CAST(:family_id AS uuid)
+                                  AND next_level_role_id <> 30
+                                  AND is_deleted = false
+                            """);
 
                     if (localBodyCode != null) {
                         affectedMembersQuery.append(" AND created_by_local_body_code = :localBodyCode");
                     }
 
-                    List<Map<String, Object>> affectedMembers = writeJdbcTemplate.queryForList(affectedMembersQuery.toString(), memberParams);
+                    List<Map<String, Object>> affectedMembers = writeJdbcTemplate
+                            .queryForList(affectedMembersQuery.toString(), memberParams);
 
                     Timestamp now = Timestamp.valueOf(LocalDateTime.now());
                     List<SqlParameterSource> logRows = new ArrayList<>();
@@ -228,7 +260,8 @@ public class ProcessApplication {
                         if (memberDist == null) {
                             memberDist = family.get("lgd_district_code");
                         }
-                        mLog.addValue("lgd_district_code", GlobalUpdateCheckHelper.normalizeDistrictCode(memberDist), Types.INTEGER);
+                        mLog.addValue("lgd_district_code", GlobalUpdateCheckHelper.normalizeDistrictCode(memberDist),
+                                Types.INTEGER);
                         mLog.addValue("created_by_dist_code", distCode, Types.INTEGER);
                         mLog.addValue("created_by_local_body_code", normalizedLbc);
                         mLog.addValue("op_type", "ACCEPT_FAMILY", Types.VARCHAR);
@@ -247,7 +280,9 @@ public class ProcessApplication {
                     // Family-level log row
                     MapSqlParameterSource fLog = new MapSqlParameterSource();
                     fLog.addValue("tmp_application_id", tmpAppUuid, Types.OTHER);
-                    fLog.addValue("lgd_district_code", GlobalUpdateCheckHelper.normalizeDistrictCode(family.get("lgd_district_code")), Types.INTEGER);
+                    fLog.addValue("lgd_district_code",
+                            GlobalUpdateCheckHelper.normalizeDistrictCode(family.get("lgd_district_code")),
+                            Types.INTEGER);
                     fLog.addValue("created_by_dist_code", distCode, Types.INTEGER);
                     fLog.addValue("created_by_local_body_code", normalizedLbc);
                     fLog.addValue("op_type", "ACCEPT_FAMILY", Types.VARCHAR);
@@ -263,40 +298,41 @@ public class ProcessApplication {
                     logRows.add(fLog);
 
                     String insertLogSql = """
-                        INSERT INTO dbt_apy.accept_reject_info (
-                            tmp_application_id,
-                            lgd_district_code,
-                            created_by_dist_code,
-                            created_by_local_body_code,
-                            op_type,
-                            user_id,
-                            remarks,
-                            ip_address,
-                            app_serial,
-                            family_serial,
-                            family_id,
-                            member_id,
-                            created_at,
-                            updated_at
-                        ) VALUES (
-                            :tmp_application_id,
-                            :lgd_district_code,
-                            :created_by_dist_code,
-                            :created_by_local_body_code,
-                            :op_type,
-                            :user_id,
-                            :remarks,
-                            :ip_address,
-                            :app_serial,
-                            :family_serial,
-                            :family_id,
-                            :member_id,
-                            :created_at,
-                            :updated_at
-                        )
-                    """;
+                                INSERT INTO dbt_apy.accept_reject_info (
+                                    tmp_application_id,
+                                    lgd_district_code,
+                                    created_by_dist_code,
+                                    created_by_local_body_code,
+                                    op_type,
+                                    user_id,
+                                    remarks,
+                                    ip_address,
+                                    app_serial,
+                                    family_serial,
+                                    family_id,
+                                    member_id,
+                                    created_at,
+                                    updated_at
+                                ) VALUES (
+                                    :tmp_application_id,
+                                    :lgd_district_code,
+                                    :created_by_dist_code,
+                                    :created_by_local_body_code,
+                                    :op_type,
+                                    :user_id,
+                                    :remarks,
+                                    :ip_address,
+                                    :app_serial,
+                                    :family_serial,
+                                    :family_id,
+                                    :member_id,
+                                    :created_at,
+                                    :updated_at
+                                )
+                            """;
 
-                    int[] batchResults = writeJdbcTemplate.batchUpdate(insertLogSql, logRows.toArray(new SqlParameterSource[0]));
+                    int[] batchResults = writeJdbcTemplate.batchUpdate(insertLogSql,
+                            logRows.toArray(new SqlParameterSource[0]));
                     boolean isLogSaved = batchResults.length > 0;
 
                     if (is_saved && isLogSaved) {
@@ -306,10 +342,12 @@ public class ProcessApplication {
                         dataMap.put("family_id", familyId);
                         dataMap.put("app_serial", appSerial);
                         dataMap.put("affected_members", affectedMembers.size());
-                        return ResponseEntity.ok(success("Family Application Accepted. Family ID: " + serialOrId, dataMap));
+                        return ResponseEntity
+                                .ok(success("Family Application Accepted. Family ID: " + serialOrId, dataMap));
                     } else {
                         conn.rollback();
-                        return ResponseEntity.badRequest().body(error("Failed to accept family application.", HttpStatus.BAD_REQUEST));
+                        return ResponseEntity.badRequest()
+                                .body(error("Failed to accept family application.", HttpStatus.BAD_REQUEST));
                     }
                 } catch (Exception e) {
                     conn.rollback();
@@ -317,7 +355,8 @@ public class ProcessApplication {
                 }
             }
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(error("Failed to accept family application: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+            return ResponseEntity.badRequest()
+                    .body(error("Failed to accept family application: " + e.getMessage(), HttpStatus.BAD_REQUEST));
         }
     }
 
@@ -358,5 +397,28 @@ public class ProcessApplication {
         } catch (NumberFormatException ignored) {
             return str;
         }
+
+    @PostMapping
+    public ResponseEntity<?> getStatusByFamily(@RequestBody FamilyRequest request) {
+        if (request == null || request.getDistrictCode() == null || request.getFamilyId() == null) {
+            return ResponseEntity.badRequest()
+                    .body(responseHandler.ResponseHandler
+                            .error("districtCode and familyId are required in request body"));
+        }
+
+        List<Map<String, Object>> data;
+        if (request.getMemberId() != null && !request.getMemberId().isBlank()) {
+            data = statusFLDC.getStatusByDistrict(request.getDistrictCode(), request.getFamilyId(),
+                    request.getMemberId());
+        } else {
+            data = statusFLDC.getStatusByFamily(request.getDistrictCode(), request.getFamilyId());
+        }
+
+        if (data == null || data.isEmpty()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(responseHandler.ResponseHandler.error("Family members not found for the given family"));
+        }
+
+        return ResponseEntity.ok(success("Family members retrieved successfully", data));
     }
 }

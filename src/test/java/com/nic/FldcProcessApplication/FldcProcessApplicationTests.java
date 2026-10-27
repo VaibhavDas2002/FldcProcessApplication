@@ -92,16 +92,11 @@ class FldcProcessApplicationTests {
 	private processWorkflow.ProcessApplication processApplication;
 
 	@Test
-	void testGetTestEndpoint() {
+	void testGetStatusByFamilyValidation() {
 		assertNotNull(processApplication, "ProcessApplication controller should be loaded");
-		org.springframework.http.ResponseEntity<?> response = processApplication.getTest();
-		assertEquals(org.springframework.http.HttpStatus.OK, response.getStatusCode());
-		assertNotNull(response.getBody());
-		@SuppressWarnings("unchecked")
-		java.util.Map<String, Object> body = (java.util.Map<String, Object>) response.getBody();
-		assertEquals("Family members retrieved successfully", body.get("message"));
-		assertEquals(true, body.get("status"));
-		assertEquals(200, body.get("statusCode"));
+		reqDTO.FamilyRequest invalidReq = new reqDTO.FamilyRequest();
+		org.springframework.http.ResponseEntity<?> response = processApplication.getStatusByFamily(invalidReq);
+		assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, response.getStatusCode());
 	}
 
 }

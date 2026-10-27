@@ -26,4 +26,9 @@ public class StatusFLDCimpl implements StatusFLDC {
     public List<Map<String, Object>> geStatustByDistrict(int districtCode, String family_id, String member_id) {
         return getStatusByDistrict(districtCode, family_id, member_id);
     }
+
+    @Override
+    public List<Map<String, Object>> getStatusByFamily(int districtCode, String family_id) {
+        return memberRepository.findByFamilyId(districtCode, family_id);
+    }
 }
