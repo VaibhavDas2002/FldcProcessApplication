@@ -97,6 +97,7 @@ public class ZoneDatabaseConfig {
         config.setConnectionTimeout(30000);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
+        config.setInitializationFailTimeout(-1);
         return new HikariDataSource(config);
     }
 
