@@ -35,3 +35,7 @@ build/
 
 #taskkill /f /pid 21296
 #netstat -ano | findstr 8081
+
+# Environment variable files
+.env
+.env.local
