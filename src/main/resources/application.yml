@@ -1,6 +1,9 @@
 spring:
   application:
     name: FldcProcessApplication
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   config:
     import: optional:file:.env[.properties]
   profiles:
@@ -18,7 +21,6 @@ spring:
       max-lifetime: 1800000
       initialization-fail-timeout: -1
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: none
     open-in-view: false
