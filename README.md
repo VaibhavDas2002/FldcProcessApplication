@@ -29,7 +29,7 @@ The FLDC (Family Level Data Collection) / Annapurna Yojana (APY) portal coordina
 - **Framework**: Spring Boot 3.x / 4.x, Spring Web, Spring Data JPA (Hibernate), Spring Security (JWT)
 - **Database**: PostgreSQL 15+ (Schemas: `dbt_apy`, `cross_check`)
 - **Database Migrations**: Flyway (`V1__init_workflow_tables.sql`, `V2__create_indexes.sql`)
-- **DTO Mapping**: MapStruct 1.5.5.Final with Lombok binding
+- **DTO Mapping**: MapStruct 1.5.5.Final with explicit standard Java POJOs (100% IDE-portable, no Lombok dependency)
 - **Documentation**: springdoc-openapi 2.6.0 (Swagger UI)
 - **Testing**: JUnit 5, Mockito, Spring Boot Test
 

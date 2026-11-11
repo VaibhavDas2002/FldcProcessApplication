@@ -1,8 +1,5 @@
 package com.nic.fldc.common.exception;
 
-import lombok.Getter;
-
-@Getter
 public class UnauthorizedJurisdictionException extends RuntimeException {
 
     private final Integer requestedDistrictCode;
@@ -20,5 +17,12 @@ public class UnauthorizedJurisdictionException extends RuntimeException {
         this.requestedDistrictCode = null;
         this.authorizedDistrictCode = null;
     }
-}
 
+    public Integer getRequestedDistrictCode() {
+        return requestedDistrictCode;
+    }
+
+    public Integer getAuthorizedDistrictCode() {
+        return authorizedDistrictCode;
+    }
+}

@@ -1,8 +1,5 @@
 package com.nic.fldc.common.exception;
 
-import lombok.Getter;
-
-@Getter
 public class ResourceNotFoundException extends RuntimeException {
 
     private final String resourceType;
@@ -19,5 +16,12 @@ public class ResourceNotFoundException extends RuntimeException {
         this.resourceType = null;
         this.resourceId = null;
     }
-}
 
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public Object getResourceId() {
+        return resourceId;
+    }
+}
