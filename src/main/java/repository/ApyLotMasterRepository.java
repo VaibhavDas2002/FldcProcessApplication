@@ -1,0 +1,17 @@
+package repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import entity.ApyLotMaster;
+
+@Repository
+public interface ApyLotMasterRepository extends JpaRepository<ApyLotMaster, Long> {
+
+    List<ApyLotMaster> findByLotStatusAndLgdDistrictCode(Integer lotStatus, Integer lgdDistrictCode);
+
+    List<ApyLotMaster> findByLotStatus(Integer lotStatus);
+}
+
