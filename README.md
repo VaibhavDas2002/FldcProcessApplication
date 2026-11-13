@@ -38,33 +38,41 @@ The FLDC (Family Level Data Collection) / Annapurna Yojana (APY) portal coordina
 ## 3. Project Structure
 
 ```
-src/main/java/com/nic
+src/main/java/com/nic/fldc
 ├── FldcProcessApplication.java           # Spring Boot bootstrap & scanning configuration
-├── fldc
-│   ├── common
-│   │   ├── api                           # Standard ApiResponse & PageResponse
-│   │   ├── config                        # SecurityConfig, CorsConfig, OpenApiConfig, JpaAuditConfig
-│   │   ├── exception                     # GlobalExceptionHandler, domain exceptions, ErrorCode
-│   │   ├── logging                       # RequestMdcFilter (MDC tracking with X-Request-Id)
-│   │   ├── routing                       # ZoneRoutingDataSource, ZoneContextHolder
-│   │   └── security                      # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal
-│   ├── workflow
-│   │   ├── controller                    # Citizen, Operator, Enquiry, Verifier, Approver, Reprocess
-│   │   ├── dto                           # Request & Response DTOs
-│   │   ├── entity                        # Family, FamilyMember, AcceptRejectInfo, LbDataPaidApy
-│   │   ├── mapper                        # MapStruct mappers (FamilyMapper, FamilyMemberMapper)
-│   │   ├── repository                    # Spring Data JPA repositories & specifications
-│   │   │   └── specification             # Tab-based lazy queue specifications
-│   │   ├── service                       # WorkflowExecutionService, QueueQueryService, AuditTrailService
-│   │   └── statemachine                  # NextLevelRoleId, ApplicationStatus, OpType, WorkflowStateMachine
-│   └── lot                               # Batch payment workflow (cross_check schema)
-│       ├── controller                    # LotController
-│       ├── entity                        # ApyLotMaster, ApyLotDetails
-│       ├── repository                    # ApyLotMasterRepository, ApyLotDetailsRepository
-│       └── service                       # LotService
+├── common
+│   ├── api                           # Standard ApiResponse & PageResponse
+│   ├── config                        # SecurityConfig, CorsConfig, OpenApiConfig, JpaAuditConfig
+│   ├── exception                     # GlobalExceptionHandler, domain exceptions, ErrorCode
+│   ├── logging                       # RequestMdcFilter (MDC tracking with X-Request-Id)
+│   ├── routing                       # ZoneRoutingDataSource, ZoneContextHolder
+│   └── security                      # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal
+├── workflow
+│   ├── controller                    # Citizen, Operator, Enquiry, Verifier, Approver, Reprocess
+│   ├── dto                           # Request & Response DTOs
+│   ├── entity                        # Family, FamilyMember, AcceptRejectInfo, LbDataPaidApy
+│   ├── mapper                        # MapStruct mappers (FamilyMapper, FamilyMemberMapper)
+│   ├── repository                    # Spring Data JPA repositories & specifications
+│   │   └── specification             # Tab-based lazy queue specifications
+│   ├── service                       # WorkflowExecutionService, QueueQueryService, AuditTrailService
+│   └── statemachine                  # NextLevelRoleId, ApplicationStatus, OpType, WorkflowStateMachine
+├── lot                               # Batch payment workflow (cross_check schema)
+│   ├── controller                    # LotController
+│   ├── entity                        # ApyLotMaster, ApyLotDetails
+│   ├── repository                    # ApyLotMasterRepository, ApyLotDetailsRepository
+│   └── service                       # LotService
+└── legacy                            # Earlier preserved modules (ZoneDB, GlobalUpdateCheckHelper, /api/v2/workflow controllers)
+    ├── config                        # ZoneDatabaseConfig, RoleId
+    ├── processWorkflow               # ProcessApplication (/api/v2/workflow), testController (/api/v2/test)
+    ├── repository                    # FamilyMemberJpaRepository, familymemberRepository, processApplication, entity
+    ├── reqDTO                        # FamilyRequest, MemberRequest
+    ├── resDTO                        # FamilyAcceptResponse, FamilyStatusResponse, GetFamilyInput, GetStatus
+    ├── responseHandler               # ResponseHandler
+    ├── service                       # ProcessApplication, StatusFLDC, ZoneDatabaseManager, impl
+    └── util                          # GlobalUpdateCheckHelper, Helper, ZoneDB
 ```
 
-*(Legacy packages `util.ZoneDB`, `util.GlobalUpdateCheckHelper`, and `/api/v2/workflow` controllers are preserved for 100% backward compatibility)*.
+*(Legacy packages under `com.nic.fldc.legacy.*` preserve 100% of earlier logic, database utilities, and `/api/v2/workflow` controllers for full backward compatibility)*.
 
 ---
 
